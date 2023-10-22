@@ -2,7 +2,6 @@ package com.example.fakestore.ui
 
 import android.annotation.SuppressLint
 import android.graphics.drawable.Drawable
-import android.opengl.Visibility
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -22,7 +21,7 @@ class ProductsAdapter : RecyclerView.Adapter<ProductsAdapter.ProductsViewHolder>
 
     private var productsData = ArrayList<Product>()
     private var selectedItemPosition = RecyclerView.NO_POSITION
-    //private var listener: OnClickListener? = null
+
 
     inner class ProductsViewHolder(private val binding: RvItemProductBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -105,6 +104,7 @@ class ProductsAdapter : RecyclerView.Adapter<ProductsAdapter.ProductsViewHolder>
 
     override fun onBindViewHolder(holder: ProductsViewHolder, position: Int) {
         holder.bind(productsData[position])
+
     }
 
     fun submitData(newData: List<Product>) {

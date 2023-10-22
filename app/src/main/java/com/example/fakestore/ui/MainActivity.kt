@@ -27,9 +27,6 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         fragmentManager = supportFragmentManager
 
-        lifecycleScope.launch {
-            Log.d("response", productsService.getAllProducts().body().toString())
-        }
     }
 
     override fun onNavigateUp(): Boolean {

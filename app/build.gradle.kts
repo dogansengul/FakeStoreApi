@@ -66,4 +66,7 @@ dependencies {
     //Hilt for dependency injection
     implementation("com.google.dagger:hilt-android:2.48")
     kapt("com.google.dagger:hilt-android-compiler:2.48")
+
+    //Facebook shimmer
+    implementation("com.facebook.shimmer:shimmer:0.5.0")
 }
