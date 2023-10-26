@@ -3,24 +3,19 @@ package com.example.fakestore.ui
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
-import com.example.fakestore.ProductsService
 import com.example.fakestore.databinding.FragmentFirstBinding
-import com.example.fakestore.model.mapper.ProductMapper
+import com.example.fakestore.model.FirstViewModel
 import com.facebook.shimmer.ShimmerFrameLayout
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.IOException
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class FirstFragment : Fragment(){
@@ -29,7 +24,7 @@ class FirstFragment : Fragment(){
     private val binding get() = _binding!!
     private lateinit var productsAdapter: ProductsAdapter
     private lateinit var shimmerFrameLayout: ShimmerFrameLayout
-    @Inject lateinit var productsService: ProductsService
+    private val viewModel: FirstViewModel by viewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -42,59 +37,41 @@ class FirstFragment : Fragment(){
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        //binding.button.setOnClickListener {
-        //    Navigation.findNavController(binding.root).navigate(R.id.action_firstFragment_to_secondFragment)
-        //}
+
         prepareRecyclerView()
         shimmerFrameLayout = binding.shimmerContainer
 
-        lifecycleScope.launch { loadDataAndDisplayRV() }
+        loadDataToRV()
 
     }
 
-    private fun loadDataAndDisplayRV() {
-        lifecycleScope.launch {
-            try {
-                shimmerFrameLayout.visibility = View.VISIBLE
-                shimmerFrameLayout.startShimmer()
-                val productsList = withContext(IO) {
-                    productsService.getAllProducts().body()!!.map { ProductMapper.buildFrom(it) }
-                }
-                productsAdapter.submitData(productsList)
-                shimmerFrameLayout.stopShimmer()
+    private fun loadDataToRV() {
+        viewModel.loadProducts()
+        shimmerFrameLayout.visibility = View.VISIBLE
+        shimmerFrameLayout.startShimmer()
+
+        viewModel.productsLiveData.observe(viewLifecycleOwner) {
+            val productsList = it.products
+            val errorMessage = it.error
+            if (errorMessage.isNullOrBlank()) {
                 shimmerFrameLayout.visibility = View.GONE
+                shimmerFrameLayout.stopShimmer()
                 binding.rvProducts.visibility = View.VISIBLE
-            } catch (e: Exception) {
-                val handler = Handler(Looper.getMainLooper())
-
-                handler.postDelayed({
-                    shimmerFrameLayout.stopShimmer()
+                productsAdapter.submitData(productsList!!)
+            } else {
+                Handler(Looper.getMainLooper()).postDelayed({
                     shimmerFrameLayout.visibility = View.GONE
-                    handleException(binding.root, e)
+                    shimmerFrameLayout.stopShimmer()
+                    showSnackbar(binding.root, errorMessage)
                 }, 2000)
-
-            }
-        }
-    }
-
-    private fun handleException(view: View, e: Exception) {
-        when (e) {
-            is IOException -> {
-                Log.e("FirstFragment", "IOException: ${e.message}")
-                showSnackbar(view, "Internet connection problem.")
-            }
-            else -> {
-                Log.e("FirstFragment", "Exception: ${e.message}")
-                showSnackbar(view, "Timeout error.")
             }
         }
     }
 
     private fun showSnackbar(view: View, message: String) {
-        val snackbar = Snackbar.make(view, message, Snackbar.LENGTH_INDEFINITE).setAction("Refresh") {
-            loadDataAndDisplayRV()
-        }
-        snackbar.show()
+        Snackbar.make(view, message, Snackbar.LENGTH_INDEFINITE).setAction("Refresh") {
+            loadDataToRV()
+        }.show()
     }
 
     private fun prepareRecyclerView() {
@@ -103,7 +80,6 @@ class FirstFragment : Fragment(){
             adapter = productsAdapter
             layoutManager = GridLayoutManager(context, 1)
         }
-        binding.rvProducts
     }
 
     override fun onDestroy() {
